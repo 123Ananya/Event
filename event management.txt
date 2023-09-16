@@ -1,0 +1,57 @@
+// SPDX License-Identifier :GPL-3.0
+
+pragma solidity >=0.5.0 <0.9.0;
+
+contract eventContract{
+    struct Event{
+        address organiser; // konsa node organise kr rha h 
+        string name;
+        uint date;
+        uint price;
+        uint ticketCount;
+        uint ticketRemain;
+
+    }
+
+    mapping(uint => Event) public events; // orgainser may be orgainising multiple events.
+    mapping (address=>mapping (uint =>uint)) public tickets; //nested mapping
+    // ek user ko ek event ya multiple events ki tickets ka record rkha h 
+    //basically record ki ek user ke pass kis event ki kitni tickets h 
+    uint public nextId;
+
+    function createEvent(string memory name , uint date , uint price , uint ticketCount )external{
+        require(date>block.timestamp , "You can organise event for future date");
+        require(ticketCount>0,"You can organise event only if you create more than 0 tickets");
+
+        events[nextId]= Event(msg.sender , name , date , price , ticketCount, ticketCount);
+        nextId++;
+    }
+
+    function buyTicket(uint id, uint quantity)external payable{ 
+        //is function ko payable isliye bnaya kyunki is account mei payment aayegi.
+        require(events[id].date!=0, "event doesnot exist");
+        require(events[id].date>block.timestamp, "event has already occured");
+        Event storage _event=events[id];
+        require(msg.value==(_event.price*quantity),"ether is not enough");
+        require(_event.ticketRemain>= quantity, "Not enough tickets");
+        _event.ticketRemain-=quantity;
+        tickets[msg.sender][id]+=quantity;
+        //ye nested mapping se hua h 
+        //konse user ne konse event ki kitni tickets buy kri h
+
+    } 
+
+    //creating a function jo is cheez ka control rkhe ki ek user apne frnd ko ticket transfer krna chah rha h .
+    function transferTicket(uint id , uint quantity, address to ) external{
+        // to variable :- jisko ticket bhej rhe h
+        require(events[id].date!=0, "event doesnot exist");
+        require(events[id].date>block.timestamp,"Event has already occured ");
+        require(tickets[msg.sender][id]>=quantity, "you do not have enough tickets");
+        tickets[msg.sender][id]-=quantity;
+        tickets[to][id]+=quantity;
+
+    }
+
+
+
+}
